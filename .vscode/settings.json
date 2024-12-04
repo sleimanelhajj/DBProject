@@ -1,0 +1,17 @@
+{
+    // Disable validation for CSS, SCSS, and LESS to avoid unknown rule errors with Tailwind directives
+    "css.validate": false,
+    "scss.validate": false,
+    "less.validate": false,
+  
+    // Enable Tailwind CSS IntelliSense if you have it installed
+    "tailwindCSS.includeLanguages": {
+      "plaintext": "javascript",
+      "javascript": "javascript",
+      "javascriptreact": "javascript"
+    },
+  
+    // Optionally, set Tailwind CSS file paths for IntelliSense
+    "tailwindCSS.experimental.configFile": "./tailwind.config.js"
+  }
+  
