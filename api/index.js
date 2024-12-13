@@ -3,6 +3,8 @@ import { fileURLToPath } from "url";
 import cors from "cors";
 import express from "express";
 import mysql from "mysql2/promise";
+import multer from "multer";
+import fs from "fs";
 
 const app = express();
 
@@ -14,12 +16,14 @@ const __dirname = path.dirname(__filename);
 const connection = await mysql.createConnection({
   host: "localhost",
   user: "root",
-  password: "sleimanelhajj2004",
+  password: "0000",
   database: "REALESTATE",
 });
 
-// Middleware
-app.use(express.json());
+// Middleware   --> to fix payloads limits
+app.use(express.json({ limit: "100mb" })); // Increase the JSON payload limit
+app.use(express.urlencoded({ limit: "100mb", extended: true })); // Increase URL-encoded payload limit
+
 app.use(
   cors({
     credentials: true,
@@ -27,47 +31,77 @@ app.use(
   })
 );
 
-//
+// Set up Multer for file uploads
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => {
+      const uploadDir = path.join(__dirname, "uploads");
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true }); // Create directory if it doesn't exist
+      }
+      cb(null, uploadDir);
+    },
+    filename: (req, file, cb) => {
+      const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+      cb(null, uniqueSuffix + path.extname(file.originalname));
+    },
+  }),
+  limits: { fileSize: 5 * 1024 * 1024 }, // Limit file size to 5MB
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = ["image/jpeg", "image/png", "image/gif"];
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error("Invalid file type. Only JPG, PNG, and GIF are allowed."));
+    }
+  },
+});
+
 // --------------------------- LOGIN ENDPOINT ---------------------------
-//
 app.post("/login", async (req, res) => {
   const { email, password } = req.body;
 
   if (!email || !password) {
-    return res.status(400).json({ error: "Email and password are required." });
+    return res.status(400).json({
+      success: false,
+      message: "Email and password are required",
+    });
   }
 
   try {
-    const [rows] = await connection.execute(
-      `SELECT seller_id, email, password FROM sellers WHERE email = ?`,
-      [email]
+    const [sellerResult] = await connection.query(
+      `SELECT * FROM sellers WHERE email = ? AND password = ?`,
+      [email, password]
     );
 
-    if (rows.length === 0) {
-      return res.status(404).json({ error: "Seller not found." });
-    }
-
-    const seller = rows[0];
-
-    if (seller.password === password) {
-      // Return seller_id in the response
-      return res.status(200).json({
-        message: "Login successful",
-        seller_id: seller.seller_id,
+    if (sellerResult.length > 0) {
+      const seller = sellerResult[0];
+      return res.json({
+        success: true,
+        userType: "seller",
+        user: {
+          id: seller.seller_id,
+          name: seller.name,
+          email: seller.email,
+        },
       });
-    } else {
-      return res.status(401).json({ error: "Invalid email or password." });
     }
-  } catch (err) {
-    console.error("Error during login:", err);
-    res.status(500).json({ error: "Failed to log in." });
+
+    return res.status(401).json({
+      success: false,
+      message: "Invalid email or password",
+    });
+  } catch (error) {
+    console.error("Error during login:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
   }
 });
 
-//
-// ---------------------- REGISTER ENDPOINT -----------------------
-//
-app.post("/register", async (req, res) => {
+// ---------------------- REGISTER SELLER ENDPOINT -----------------------
+app.post("/registerSeller", async (req, res) => {
   const {
     name,
     email,
@@ -78,10 +112,14 @@ app.post("/register", async (req, res) => {
     password,
   } = req.body;
 
+  const query = `
+    INSERT INTO sellers 
+    (name, email, phone_number, address, date_of_birth, home_renovation_history, password) 
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `;
+
   try {
-    const query = `INSERT INTO sellers (name, email, phone_number, address, date_of_birth, home_renovation_history, password)
-                       VALUES (?, ?, ?, ?, ?, ?, ?)`;
-    await connection.execute(query, [
+    await connection.query(query, [
       name,
       email,
       phone_number,
@@ -90,14 +128,41 @@ app.post("/register", async (req, res) => {
       home_renovation_history,
       password,
     ]);
-    res.status(201).json({ message: "User registered successfully" });
-  } catch (err) {
-    console.error("Error registering user:", err);
-    res.status(500).json({ error: "Failed to register user" });
+
+    res.status(201).json({ success: true, message: "Seller registered successfully!" });
+  } catch (error) {
+    console.error("Error during seller registration:", error);
+    res.status(500).json({ success: false, message: "Failed to register seller." });
   }
 });
 
-//
+// ---------------------- REGISTER CLIENT ENDPOINT -----------------------
+app.post("/registerClient", async (req, res) => {
+  const { name, email, phone_number, address, date_of_birth, budget, password } = req.body;
+
+  const query = `
+    INSERT INTO clients 
+    (name, email, phone_number, address, date_of_birth, budget, password) 
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `;
+
+  try {
+    await connection.query(query, [
+      name,
+      email,
+      phone_number,
+      address,
+      date_of_birth,
+      budget,
+      password,
+    ]);
+    res.status(201).json({ success: true, message: "Client registered successfully!" });
+  } catch (error) {
+    console.error("Error during client registration:", error);
+    res.status(500).json({ success: false, message: "Failed to register client." });
+  }
+});
+
 // ------------------ ACCOUNT DETAILS ENDPOINT --------------------
 //
 app.get("/account", async (req, res) => {
@@ -155,9 +220,10 @@ app.post("/update-profile", async (req, res) => {
 });
 
 //
-// ------------------ ADD PROPERTY ENDPOINT --------------------
-//
-app.post("/add-property", async (req, res) => {
+
+// ------------------- ADD PROPERTY WITH FILE UPLOAD --------------------
+// Updated `/add-property` endpoint
+app.post("/add-property", upload.array("images", 3), async (req, res) => {
   const {
     property_type,
     address,
@@ -169,11 +235,10 @@ app.post("/add-property", async (req, res) => {
     square_feet,
     price,
     listing_date,
-    property_status,
     description,
-    photos,
   } = req.body;
 
+  // Validate required fields
   if (
     !property_type ||
     !address ||
@@ -185,7 +250,7 @@ app.post("/add-property", async (req, res) => {
     !square_feet ||
     !price ||
     !listing_date ||
-    !property_status
+    !description
   ) {
     return res.status(400).json({ error: "All required fields must be provided." });
   }
@@ -193,171 +258,58 @@ app.post("/add-property", async (req, res) => {
   try {
     const formattedDate = new Date(listing_date).toISOString().split("T")[0];
 
-    const query = `
-            INSERT INTO properties (
-                property_type,
-                address,
-                city,
-                state,
-                zip_code,
-                bedrooms,
-                bathrooms,
-                square_feet,
-                price,
-                listing_date,
-                property_status,
-                description,
-                photos
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+    // Insert Home into the `properties` table
+    const [result] = await connection.execute(
+      `
+      INSERT INTO properties (
+        property_type, 
+        address, 
+        city, 
+        state, 
+        zip_code, 
+        bedrooms, 
+        bathrooms, 
+        square_feet, 
+        price, 
+        listing_date, 
+        description
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `,
+      [
+        property_type,
+        address,
+        city,
+        state,
+        zip_code,
+        bedrooms,
+        bathrooms,
+        square_feet,
+        price,
+        formattedDate,
+        description || null,
+      ]
+    );
 
-    await connection.execute(query, [
-      property_type,
-      address,
-      city,
-      state,
-      zip_code,
-      bedrooms,
-      bathrooms,
-      square_feet,
-      price,
-      formattedDate,
-      property_status,
-      description || null,
-      photos || null,
-    ]);
+    const propertyId = result.insertId; // Get the ID of the inserted property
 
-    res.status(201).json({ message: "Property added successfully." });
+    // Insert image paths into the `property_images` table
+    if (req.files && req.files.length > 0) {
+      const photoQueries = req.files.map((file) =>
+        connection.execute(
+          `INSERT INTO property_images (property_id, image_path) VALUES (?, ?)`,
+          [propertyId, `/uploads/${file.filename}`]
+        )
+      );
+      await Promise.all(photoQueries);
+    }
+
+    res.status(201).json({ message: "Property and images added successfully." });
   } catch (err) {
     console.error("Error adding property:", err);
     res.status(500).json({ error: "Failed to add property." });
   }
 });
 
-
-// ------------------ ADD PROPERTY ENDPOINT --------------------
-app.post("/add-property", async (req, res) => {
-    const {
-      property_type,
-      address,
-      city,
-      state,
-      zip_code,
-      bedrooms,
-      bathrooms,
-      square_feet,
-      price,
-      listing_date,
-      property_status,
-      description,
-      photos, // Array of base64 images
-    } = req.body;
-  
-    // Validate required fields
-    if (
-      !property_type ||
-      !address ||
-      !city ||
-      !state ||
-      !zip_code ||
-      !bedrooms ||
-      !bathrooms ||
-      !square_feet ||
-      !price ||
-      !listing_date ||
-      !property_status
-    ) {
-      return res.status(400).json({ error: "All required fields must be provided." });
-    }
-  
-    try {
-      const formattedDate = new Date(listing_date).toISOString().split("T")[0];
-  
-      // Insert property into the `properties` table
-      const [result] = await connection.execute(
-        `
-        INSERT INTO properties (
-          property_type, 
-          address, 
-          city, 
-          state, 
-          zip_code, 
-          bedrooms, 
-          bathrooms, 
-          square_feet, 
-          price, 
-          listing_date, 
-          property_status, 
-          description
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `,
-        [
-          property_type,
-          address,
-          city,
-          state,
-          zip_code,
-          bedrooms,
-          bathrooms,
-          square_feet,
-          price,
-          formattedDate,
-          property_status,
-          description || null,
-        ]
-      );
-  
-      const propertyId = result.insertId; // Get the ID of the inserted property
-  
-      // Insert property images into the `property_images` table
-      if (photos && photos.length > 0) {
-        const imagePromises = photos.map((photo) =>
-          connection.execute(
-            `INSERT INTO property_images (property_id, image_data) VALUES (?, ?)`,
-            [propertyId, photo]
-          )
-        );
-        await Promise.all(imagePromises); // Wait for all image inserts
-      }
-  
-      res.status(201).json({ message: "Property added successfully." });
-    } catch (err) {
-      console.error("Error adding property:", err);
-      res.status(500).json({ error: "Failed to add property." });
-    }
-  });
-
-
-// --------------------------- LOGOUT ENDPOINT ---------------------------
-app.post("/logout", async (req, res) => {
-    try {
-      const token = req.headers.authorization?.split(" ")[1]; // Extract token from the Authorization header
-  
-      if (!token) {
-        return res.status(400).json({ error: "Token is required for logout." });
-      }
-  
-      // Example: Add token to a blacklist (use a database or in-memory store like Redis)
-      // Here, you could save the token with an expiration time
-      await blacklistToken(token);
-  
-      res.status(200).json({ message: "Logout successful" });
-    } catch (err) {
-      console.error("Error during logout:", err);
-      res.status(500).json({ error: "Failed to log out." });
-    }
-  });
-  
-  // Example function to blacklist a token (you'll need to implement storage logic)
-  async function blacklistToken(token) {
-    // Add token to a blacklist storage, e.g., a database or Redis
-    console.log("Token blacklisted:", token);
-  }
-  
-  
-
-
-  
-  
 
 // ------------------- SERVER START ---------------------
 app.listen(4000, () => {

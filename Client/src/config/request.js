@@ -1,5 +1,5 @@
 import axios from "axios";
-axios.defaults.baseURL = "http://127.0.0.1:8000/api";
+axios.defaults.baseURL = "http://127.0.0.1:4000/";
 
 export const sendRequest = async ({
   method = "GET",
@@ -14,6 +14,7 @@ export const sendRequest = async ({
     ? `Bearer ${localStorage.getItem("token")}`
     : "";
 
+// eslint-disable-next-line no-useless-catch
   try {
     const response = await axios.request({
       method,
