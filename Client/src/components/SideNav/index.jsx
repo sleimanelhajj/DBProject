@@ -15,23 +15,12 @@ const SideNav = () => {
 
   const logout = async () => {
     try {
-      const token = localStorage.getItem("token"); // Retrieve the token from local storage
-      if (!token) {
-        console.error("No token found");
-        navigate("/login"); // Redirect to login page if no token exists
-        return;
-      }
-  
       await sendRequest({
         method: "POST",
         route: "/logout",
         includeHeaders: true,
-        headers: {
-          Authorization: `Bearer ${token}`, // Include token in the Authorization header
-        },
       });
   
-      localStorage.removeItem("token"); // Clear token from local storage
       navigate("/login"); // Redirect to login page
     } catch (error) {
       console.error("Logout failed:", error);
@@ -68,7 +57,7 @@ const SideNav = () => {
           </li>
           <li>
             <NavLink
-              to="properties"
+              to="myproperties"
               className={({ isActive }) =>
                 `flex items-center px-3 py-2 rounded-md text-sm font-medium ${
                   isActive

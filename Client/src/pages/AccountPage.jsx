@@ -2,24 +2,56 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import ButtonSm from "../components/ButtonSm";
 import Modal from "../components/Modal";
+import { sendRequest } from "../config/request";
 
 export default function AccountPage() {
-  const [profile, setProfile] = useState(null);
+  const [profile, setProfile] = useState({
+    name: "",
+    email: "",
+    phone_number: "",
+    date_of_birth: "",
+  });
   const [originalProfile, setOriginalProfile] = useState(null);
   const [editable, setEditable] = useState(false);
   const [changesMade, setChangesMade] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const [seller_id, setSeller] = useState(null);
 
+  // Check session and set seller ID
   useEffect(() => {
-    const seller_id = localStorage.getItem("seller_id"); // Retrieve seller_id from localStorage
-    if (!seller_id) {
-      setError("Seller ID not found. Please log in.");
-      setLoading(false);
-      return;
-    }
 
+    const checkSession = async () => {
+      try {
+        const sellerResponse = await sendRequest({
+          method: "GET",
+          route: "/check-session",
+          credentials: "include", // Include cookies
+          withCredentials:true
+        });
+        console.log(sellerResponse)
+        if (!sellerResponse.success) {
+          setError("Seller ID not found. Please log in.");
+          setLoading(false);
+          return;
+        }
+
+        setSeller(sellerResponse.user.id); // Correctly set the seller ID
+      } catch (error) {
+        console.error("Error checking session:", error);
+        setError("An error occurred. Please try again.");
+      }
+    };
+
+    checkSession();
+  }, []);
+
+  // Fetch profile data once seller ID is set
+  useEffect(() => {
+    if (!seller_id) return;
+
+    setLoading(true);
     axios
       .get("http://localhost:4000/account", { params: { seller_id } })
       .then((response) => {
@@ -32,7 +64,7 @@ export default function AccountPage() {
         setError("Failed to load account data.");
         setLoading(false);
       });
-  }, []);
+  }, [seller_id]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -54,7 +86,6 @@ export default function AccountPage() {
   };
 
   const handleSave = () => {
-    const seller_id = localStorage.getItem("seller_id"); // Ensure seller_id is included in the update payload
     const formattedDate = new Date(profile.date_of_birth)
       .toISOString()
       .split("T")[0];
@@ -98,7 +129,7 @@ export default function AccountPage() {
     <div className="min-h-screen w-full flex items-center justify-center bg-gray-100 p-6">
       <div className="w-full max-w-lg bg-white p-6 rounded-lg shadow-lg">
         <h1 className="text-2xl font-bold text-gray-800 mb-6 text-center">
-          Welcome, {profile.name}
+          Welcome, {profile.name || "User"}
         </h1>
         <div>
           <div className="mb-4">
@@ -144,13 +175,9 @@ export default function AccountPage() {
           )}
         </div>
         {showModal && (
-          <Modal
-            message="Profile updated successfully!"
-            onClose={closeModal}
-          />
+          <Modal message="Profile updated successfully!" onClose={closeModal} />
         )}
       </div>
     </div>
   );
-  
 }

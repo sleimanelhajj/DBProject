@@ -1,5 +1,5 @@
 import axios from "axios";
-axios.defaults.baseURL = "http://127.0.0.1:4000/";
+axios.defaults.baseURL = "http://localhost:4000/";
 
 export const sendRequest = async ({
   method = "GET",
@@ -10,9 +10,9 @@ export const sendRequest = async ({
 }) => {
   if (!route) throw Error("URL required");
 
-  axios.defaults.headers.authorization = includeHeaders
-    ? `Bearer ${localStorage.getItem("token")}`
-    : "";
+  // axios.defaults.headers.authorization = includeHeaders
+  //   ? `Bearer ${localStorage.getItem("token")}`
+  //   : "";
 
 // eslint-disable-next-line no-useless-catch
   try {
@@ -21,6 +21,8 @@ export const sendRequest = async ({
       url: route,
       data: body,
       params,
+      withCredentials: true,
+      credentials:'include'
     });
 
     return response.data;

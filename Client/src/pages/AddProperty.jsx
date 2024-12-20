@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState , useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Input from "../components/Input";
 import Modal from "../components/Modal";
@@ -6,19 +6,22 @@ import ButtonSm from "../components/ButtonSm";
 import { sendRequest } from "../config/request";
 
 const AddProperty = () => {
+  const [cityOptions, setCityOptions] = useState([]); // State to hold city options
   const navigate = useNavigate();
+  const [seller_id, setSeller] = useState(null);
   const [propertyDetails, setPropertyDetails] = useState({
-    property_type: "",
-    address: "",
-    city: "",
-    state: "",
-    zip_code: "",
-    bedrooms: "",
-    bathrooms: "",
-    square_feet: "",
-    price: "",
-    listing_date: "",
-    description: "",
+    property_type: "home",
+    address: "hadi",
+    city: "hadi",
+    state: "hadi",
+    zip_code: "hadi",
+    bedrooms: "2",
+    bathrooms: "2",
+    square_feet: "2",
+    price: "3",
+    listing_date: "12/12/2024",
+    description: "naklf",
+    seller:seller_id
   });
 
   const [images, setImages] = useState([]); // State for image files
@@ -27,7 +30,64 @@ const AddProperty = () => {
 
   const openModal = () => setShowModal(true);
   const closeModal = () => setShowModal(false);
+  
+    // Check session and set seller ID
+    useEffect(() => {
+  
+      const checkSession = async () => {
+        try {
+          const sellerResponse = await sendRequest({
+            method: "GET",
+            route: "/check-session",
+            credentials: "include", // Include cookies
+            withCredentials:true
+          });
+          console.log(sellerResponse)
+          if (!sellerResponse.success) {
+            setError("Seller ID not found. Please log in.");
+            setLoading(false);
+            return;
+          }
+  
+          setSeller(sellerResponse.user.id); // Correctly set the seller ID
+        } catch (error) {
+          console.error("Error checking session:", error);
+          setError("An error occurred. Please try again.");
+        }
+      };
+  
+      checkSession();
+    }, []);
+  
+useEffect(() => {
+  if (seller_id) {
+    setPropertyDetails((prevDetails) => ({
+      ...prevDetails,
+      seller: seller_id,
+    }));
+  }
+}, [seller_id]);
 
+  // Fetch city options when the component mounts
+  useEffect(() => {
+    const fetchCities = async () => {
+      try {
+        const optionsListResponse = await sendRequest({
+          method: "GET",
+          route: "getOptions",
+        });
+        setCityOptions(optionsListResponse);
+      } catch (error) {
+        console.error("Error fetching cities:", error);
+
+      }
+    };
+    fetchCities();
+  }, []);
+  const getOptions= async () => {
+     const optionsListResponse= await sendRequest({ method: 'GET', route: 'getOptions' });
+      setCityOptions(optionsListResponse)
+    }
   const validateForm = () => {
     const errors = {};
     if (!propertyDetails.property_type)
@@ -46,10 +106,10 @@ const AddProperty = () => {
     if (!propertyDetails.description)
       errors.description = "Description is required";
 
-    if (images.length === 0)
-      errors.images = "At least one image is required";
-    else if (images.length > 3)
-      errors.images = "You can upload a maximum of 3 images";
+    // if (images.length === 0)
+    //   errors.images = "At least one image is required";
+    // else if (images.length > 3)
+    //   errors.images = "You can upload a maximum of 3 images";
 
     setValidationErrors(errors);
     return Object.keys(errors).length === 0;
@@ -65,17 +125,16 @@ const AddProperty = () => {
       Object.entries(propertyDetails).forEach(([key, value]) => {
         formData.append(key, value);
       });
-
       // Append images
       images.forEach((image) => formData.append("images", image));
-
+      console.log('images')
       const response = await sendRequest({
         method: "POST",
         route: "/add-property",
         body: formData,
+        credentials:'include',
         isFormData: true, // Indicate that this is a FormData request
       });
-
       if (response.status === 401) {
         navigate("/login");
       } else {
@@ -93,6 +152,7 @@ const AddProperty = () => {
           price: "",
           listing_date: "",
           description: "",
+          seller: ""
         });
         setImages([]); // Clear uploaded images
       }
@@ -110,7 +170,6 @@ const AddProperty = () => {
       setValidationErrors({ ...validationErrors, images: null });
     }
   };
-
   return (
     <div>
       <div className="max-w-lg space-y-4 mb-10">
@@ -136,19 +195,33 @@ const AddProperty = () => {
             <p className="text-red-400 text-sm">{validationErrors.property_type}</p>
           )}
         </div>
+       
+{/* City Dropdown */}
+<div className="w-full">
+          <select
+            value={propertyDetails.city}
+            onChange={(e) =>
+              setPropertyDetails({ ...propertyDetails, city: e.target.value })
+            }
+            className="p-3 border rounded-md border-gray-300 w-full"
+          >
+            <option value="">Select City</option>
+            {cityOptions.map((city, index) => (
+              <option key={index} value={city}>
+                {city}
+              </option>
+            ))}
+          </select>
+          {validationErrors.city && (
+            <p className="text-red-400 text-sm">{validationErrors.city}</p>
+          )}
+        </div>
         <Input
           label="Address"
           type="text"
           value={propertyDetails.address}
           onChange={(value) => setPropertyDetails({ ...propertyDetails, address: value })}
           error={validationErrors.address}
-        />
-        <Input
-          label="City"
-          type="text"
-          value={propertyDetails.city}
-          onChange={(value) => setPropertyDetails({ ...propertyDetails, city: value })}
-          error={validationErrors.city}
         />
         <Input
           label="State"

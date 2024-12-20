@@ -17,6 +17,7 @@ export default function LoginPage() {
                 headers: {
                     'Content-Type': 'application/json',
                 },
+                credentials:'include', //to include cookies
                 body: JSON.stringify({ email, password }),
             });
 
@@ -24,7 +25,7 @@ export default function LoginPage() {
 
             if (result.success) {
                 alert(`Welcome, ${result.user.name}!`);
-                navigate('/'); // Redirect to the index page
+                navigate('/accountpage'); // Redirect to the index page
             } else {
                 setError(result.message || 'Login failed');
             }

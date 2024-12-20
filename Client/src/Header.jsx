@@ -118,22 +118,22 @@ export default function Header() {
           Home
         </Link>
         <Link
-          to="/houses"
+          to="/about"
           className="text-gray-700 font-medium hover:text-purple-600 transition-colors"
         >
-          Houses
+          About Us
         </Link>
         <Link
-          to="/lands"
+          to="/properties"
           className="text-gray-700 font-medium hover:text-purple-600 transition-colors"
         >
-          Lands
+          PropertiesForSale
         </Link>
         <Link
-          to="/accountpage"
+          to="/ContactUs"
           className="text-gray-700 font-medium hover:text-purple-600 transition-colors"
         >
-          Account
+          Contact Us
         </Link>
       </nav>
 
