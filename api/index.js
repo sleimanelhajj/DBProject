@@ -18,10 +18,12 @@ const __dirname = path.dirname(__filename);
 const connection = await mysql.createConnection({
   host: "localhost",
   user: "root",
-  password: "HadiAliAdam128!",
-  database: "realestate",
+  password: "0000",
+  database: "realestater",
   port: 3306
 });
+
+
 
 // Middleware   --> to fix payloads limits
 app.use(express.json({ limit: "100mb" })); // Increase the JSON payload limit
@@ -108,16 +110,17 @@ app.post("/login", async (req, res) => {
         message: "Login successful. Cookie set.",
       });
     }
-
+    console.log('testtest')
     const [clientResult] = await connection.query(
-      `SELECT * FROM client WHERE email = ? AND password = ?`,
+      `SELECT * FROM clients WHERE email = ? AND password = ?`,
       [email, password])
     if (clientResult.length > 0) {
       const client = clientResult[0];
-      const clientId= client['id'];
-      const clientName= seller['name']
+      const clientId= client['Id'];
+      const clientName= client['name']
       typee= 'client';
       const user = { id: clientId, name: clientName,userType:typee };
+      console.log('testtest')
 
     // Set user data in a cookie (sign it if needed)
     res.cookie('userData', JSON.stringify(user), {
@@ -128,9 +131,9 @@ app.post("/login", async (req, res) => {
        return  res.json({
         success: true,
         user: {
-          id: seller.id,
-          name: seller.name,
-          email: seller.email,
+          id: client.id,
+          name: client.name,
+          email: client.email,
           userType: typee
         },
         message: "Login successful. Cookie set.",
@@ -151,6 +154,21 @@ app.post("/login", async (req, res) => {
   }
   
 });
+
+app.post("/ReserveProperty", async (req,res)=>{
+  const Propertyid = req.body['propertyId']
+  const cookk= await JSON.parse(req.cookies['userData'])
+  const clientID= cookk.id
+
+// 93 {"id":2,"name":"Ali Yassine","userType":"seller"}  
+  await connection.query('insert into reserve values (?, ?)',[clientID,Propertyid])
+ 
+
+return res.json({ success: true })
+
+
+  
+});
 app.get("/check-session", async (req, res) => {
   const cookk= await req.cookies
   if (cookk['userData']) {
@@ -161,11 +179,50 @@ app.get("/check-session", async (req, res) => {
 });
 
 app.get('/user/userProperties',async (req,res)=>{
-
+  console.log(req.query)
   const userId=req.query.id
-  const allProperties = await connection.query('select * from properties where sellerId=?',[userId])
+  console.log(userId)
+  var allProperties=[0,0]
+  if(userId!=null){
+     allProperties = await connection.query('select * from properties where sellerId=?',[userId])}
+  
+  else{
+     allProperties=[1,1]
+  }
   return res.json({properties:allProperties[0]});
 });
+app.get('/getReservedProperties',async (req,res)=>{
+  console.log(req.query)
+  const userId=req.query.id
+  console.log(userId)
+  var allProperties=[0,0]
+  if(userId!=null){
+   allProperties = await connection.query('select * from properties,reserve where propertyid=id and clientid=?',[userId])}
+  
+  else{
+     allProperties=[1,1]
+  }
+  return res.json({properties:allProperties[0]});
+});
+//
+
+
+app.get('/getAliYassine',async (req,res)=>{
+  console.log(req.query)
+  const userId=req.query.id
+  console.log(userId)
+  var allProperties=[0,0]
+  if(userId!=null){
+   allProperties = await connection.query('select * from properties where sellerId=?',[userId])}
+  
+  else{
+     allProperties=[1,1]
+  }
+  return res.json({properties:allProperties[0]});
+});
+
+
+//
 
 app.post('/contactFill', async (req,res) =>{
 const {fullName,email,message,}=req.body
@@ -175,7 +232,7 @@ return res.json({success:true});
 // GET route to fetch property details by ID
 app.get('/property/details/:id', async (req, res) => {
   const { id } = req.params; // Get the property ID from the URL params
-
+console.log(req.params)
 const property = await connection.query('select * from properties where id=?',[id])
 console.log(property[0][0])
   if (property) {
@@ -184,11 +241,19 @@ console.log(property[0][0])
     res.status(404).json({ message: 'Property not found' }); // Return a 404 if not found
   }
 });
-app.post('/deleteProperty', async (req, res) => {
-  const id = req.body['propertyId']
-  await connection.query('delete  from properties where id=?',[id])
- return res.json({ success: true })
+//
+app.post("/deleteProperty", async (req,res)=>{
+  const Propertyid = req.body['propertyId']
+  console.log(Propertyid)
+// 93 {"id":2,"name":"Ali Yassine","userType":"seller"}  
+  await connection.query('delete from properties where id=?',[Propertyid])
+
+return res.json({ success: true })
+
+
+  
 });
+//
 app.get("/getSellersandClients",async(req,res) =>{
 const queryClients='SELECT  (SELECT COUNT(*) FROM   clients) AS clients,(SELECT COUNT(*)FROM   sellers) AS sellers FROM    dual';
 
@@ -388,7 +453,6 @@ app.post("/update-profile", async (req, res) => {
 // ------------------- ADD PROPERTY WITH FILE UPLOAD --------------------
 // Updated `/add-property` endpoint
 app.post("/add-property", upload.array("images", 3), async (req, res) => {
-  console.log('jafjai');
   const {
     property_type,
     address,
@@ -470,26 +534,27 @@ console.log(property_type,
         seller]
     );
 
-  //   const propertyId = result.insertId; // Get the ID of the inserted property
+    const propertyId = result.insertId; // Get the ID of the inserted property
 
-  //   // Insert image paths into the `property_images` table
-  //   if (req.files && req.files.length > 0) {
-  //     const photoQueries = req.files.map((file) =>
-  //       connection.execute(
-  //         `INSERT INTO property_images (property_id, image_path) VALUES (?, ?)`,
-  //         [propertyId, `/uploads/${file.filename}`]
-  //       )
-  //     );
-  //     await Promise.all(photoQueries);
-  //   }
+    // Insert image paths into the `property_images` table
+    if (req.files && req.files.length > 0) {
+      // Create an array of image paths
+      const imagePaths = req.files.map(file => `/uploads/${file.filename}`);
 
-  //   res.status(201).json({ message: "Property and images added successfully." });
+      // Insert the array into the database
+      await connection.execute(
+        `INSERT INTO properties (property_id, image_paths) VALUES (?, ?)`,
+        [propertyId, JSON.stringify(imagePaths)]
+      );
+    }
+
+    res.status(201).json({ message: 'Property and images added successfully.' });
   } catch (err) {
-    console.error("Error adding property:", err);
-    res.status(500).json({ error: "Failed to add property." });
+    console.error('Error adding property:', err);
+    res.status(500).json({ error: 'Failed to add property.' });
   }
-
 });
+
 
 
 // ------------------- SERVER START ---------------------

@@ -9,12 +9,15 @@ import RegisterClient from './pages/RegisterBuyer.jsx'
 import LoginPage from "./pages/LoginPage.jsx";
 import Layout from "./Layout.jsx";
 import SideNavLayout from "./SideNavLayout.jsx"; // New layout for SideNav
+import SideNavLayoutBuyer from "./SideNavLayoutBuyer.jsx"; // New layout for SideNav
+
 import SellersList from "./pages/sellersRender.jsx";
 import AccountPage from "./pages/AccountPage.jsx";
 import AddProperty from "./pages/AddProperty.jsx";
 import Schedule from "./pages/Schedule";
 import UserProperties from "./pages/UserProperties.jsx";
 import PropertyDetails from "./pages/PropertyDetails.jsx"
+import ReservedProperties from "./pages/ReservedProperties.jsx"
 import Landing from "./Landing/index.jsx";
 import Homes from './pages/Homes.jsx';
 import About from './pages/About.jsx'
@@ -38,9 +41,12 @@ function App() {
       </Route>
 
       {/* Routes for BuyerSide*/}
-      <Route path="/" element={<Layout />}>
-      <Route path='/properties' element={<Lands />} /> 
-      <></>
+      <Route path="/buyerpage" element={<SideNavLayoutBuyer />}>
+      <Route path='properties' element={<Lands />} /> 
+      <Route path="properties/details/:id" element={<PropertyDetails />} />
+   
+      <Route path="reservedproperties" element={<ReservedProperties />} />
+
       </Route>
 
       {/* Routes with SideNav for Seller */}
@@ -53,7 +59,6 @@ function App() {
         <Route path="sellersRender" element={<SellersList />} />
         <Route path = "meetings" element = {<Schedule />}/>
         <Route path = "myproperties" element = {<UserProperties/>}/>    
-        <Route path="property/details/:id" element={<PropertyDetails />} />
 
         </Route>
     {/* Miscalaneous Roots */}

@@ -25,7 +25,11 @@ export default function LoginPage() {
 
             if (result.success) {
                 alert(`Welcome, ${result.user.name}!`);
-                navigate('/accountpage'); // Redirect to the index page
+        if(result.user.userType=='seller'){
+                navigate('/accountpage'); }// Redirect to the index page
+        else{
+            navigate('/buyerpage')
+        }
             } else {
                 setError(result.message || 'Login failed');
             }

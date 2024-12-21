@@ -12,7 +12,7 @@ const SuccessPage = () => {
        You have successfully completed the transaction!
       </h1>
       <button
-        onClick={() => navigate("/accountpage")}
+        onClick={() => navigate("/buyerpage")}
         className="px-4 py-2 bg-blue-500 text-white font-semibold rounded-md hover:bg-blue-600"
       >
         Go Back

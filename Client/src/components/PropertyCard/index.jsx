@@ -96,7 +96,7 @@ const PropertyCard = ({ property }) => {
         </Typography>
       </CardBody>
       <CardFooter className="py-0 px-3">
-        <Link to={`/accountpage/property/details/${property.id}`}>
+        <Link to={`/buyerpage/properties/details/${property.id}`}>
           <Button
             size="lg"
             fullWidth={true}

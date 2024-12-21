@@ -1,4 +1,4 @@
-import React, { useState , useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Input from "../components/Input";
 import Modal from "../components/Modal";
@@ -6,67 +6,61 @@ import ButtonSm from "../components/ButtonSm";
 import { sendRequest } from "../config/request";
 
 const AddProperty = () => {
-  const [cityOptions, setCityOptions] = useState([]); // State to hold city options
+  const [cityOptions, setCityOptions] = useState([]);
   const navigate = useNavigate();
   const [seller_id, setSeller] = useState(null);
   const [propertyDetails, setPropertyDetails] = useState({
     property_type: "home",
-    address: "hadi",
-    city: "hadi",
-    state: "hadi",
-    zip_code: "hadi",
-    bedrooms: "2",
-    bathrooms: "2",
-    square_feet: "2",
-    price: "3",
-    listing_date: "12/12/2024",
-    description: "naklf",
-    seller:seller_id
+    address: "",
+    city: "",
+    state: "",
+    zip_code: "",
+    bedrooms: "",
+    bathrooms: "",
+    square_feet: "",
+    price: "",
+    listing_date: "",
+    description: "",
+    seller: seller_id,
   });
 
-  const [images, setImages] = useState([]); // State for image files
+  const [images, setImages] = useState([]);
   const [validationErrors, setValidationErrors] = useState({});
   const [showModal, setShowModal] = useState(false);
 
   const openModal = () => setShowModal(true);
   const closeModal = () => setShowModal(false);
-  
-    // Check session and set seller ID
-    useEffect(() => {
-  
-      const checkSession = async () => {
-        try {
-          const sellerResponse = await sendRequest({
-            method: "GET",
-            route: "/check-session",
-            credentials: "include", // Include cookies
-            withCredentials:true
-          });
-          console.log(sellerResponse)
-          if (!sellerResponse.success) {
-            setError("Seller ID not found. Please log in.");
-            setLoading(false);
-            return;
-          }
-  
-          setSeller(sellerResponse.user.id); // Correctly set the seller ID
-        } catch (error) {
-          console.error("Error checking session:", error);
-          setError("An error occurred. Please try again.");
+
+  // Check session and set seller ID
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        const sellerResponse = await sendRequest({
+          method: "GET",
+          route: "/check-session",
+          credentials: "include",
+          withCredentials: true,
+        });
+        if (!sellerResponse.success) {
+          navigate("/login");
+          return;
         }
-      };
-  
-      checkSession();
-    }, []);
-  
-useEffect(() => {
-  if (seller_id) {
-    setPropertyDetails((prevDetails) => ({
-      ...prevDetails,
-      seller: seller_id,
-    }));
-  }
-}, [seller_id]);
+        setSeller(sellerResponse.user.id);
+      } catch (error) {
+        console.error("Error checking session:", error);
+      }
+    };
+    checkSession();
+  }, [navigate]);
+
+  useEffect(() => {
+    if (seller_id) {
+      setPropertyDetails((prevDetails) => ({
+        ...prevDetails,
+        seller: seller_id,
+      }));
+    }
+  }, [seller_id]);
 
   // Fetch city options when the component mounts
   useEffect(() => {
@@ -79,15 +73,11 @@ useEffect(() => {
         setCityOptions(optionsListResponse);
       } catch (error) {
         console.error("Error fetching cities:", error);
-
       }
     };
     fetchCities();
   }, []);
-  const getOptions= async () => {
-     const optionsListResponse= await sendRequest({ method: 'GET', route: 'getOptions' });
-      setCityOptions(optionsListResponse)
-    }
+
   const validateForm = () => {
     const errors = {};
     if (!propertyDetails.property_type)
@@ -96,8 +86,16 @@ useEffect(() => {
     if (!propertyDetails.city) errors.city = "City is required";
     if (!propertyDetails.state) errors.state = "State is required";
     if (!propertyDetails.zip_code) errors.zip_code = "Zip Code is required";
-    if (!propertyDetails.bedrooms) errors.bedrooms = "Bedrooms are required";
-    if (!propertyDetails.bathrooms) errors.bathrooms = "Bathrooms are required";
+    if (
+      propertyDetails.property_type === "home" &&
+      !propertyDetails.bedrooms
+    )
+      errors.bedrooms = "Bedrooms are required";
+    if (
+      propertyDetails.property_type === "home" &&
+      !propertyDetails.bathrooms
+    )
+      errors.bathrooms = "Bathrooms are required";
     if (!propertyDetails.square_feet)
       errors.square_feet = "Square feet are required";
     if (!propertyDetails.price) errors.price = "Price is required";
@@ -105,11 +103,6 @@ useEffect(() => {
       errors.listing_date = "Listing date is required";
     if (!propertyDetails.description)
       errors.description = "Description is required";
-
-    // if (images.length === 0)
-    //   errors.images = "At least one image is required";
-    // else if (images.length > 3)
-    //   errors.images = "You can upload a maximum of 3 images";
 
     setValidationErrors(errors);
     return Object.keys(errors).length === 0;
@@ -121,24 +114,20 @@ useEffect(() => {
 
     try {
       const formData = new FormData();
-      // Append property details
       Object.entries(propertyDetails).forEach(([key, value]) => {
         formData.append(key, value);
       });
-      // Append images
       images.forEach((image) => formData.append("images", image));
-      console.log('images')
       const response = await sendRequest({
         method: "POST",
         route: "/add-property",
         body: formData,
-        credentials:'include',
-        isFormData: true, // Indicate that this is a FormData request
+        credentials: "include",
+        isFormData: true,
       });
       if (response.status === 401) {
         navigate("/login");
       } else {
-        console.log(response);
         openModal();
         setPropertyDetails({
           property_type: "",
@@ -152,9 +141,9 @@ useEffect(() => {
           price: "",
           listing_date: "",
           description: "",
-          seller: ""
+          seller: "",
         });
-        setImages([]); // Clear uploaded images
+        setImages([]);
       }
     } catch (error) {
       console.error(error);
@@ -164,12 +153,16 @@ useEffect(() => {
   const handleImageChange = (e) => {
     const files = Array.from(e.target.files);
     if (files.length > 3) {
-      setValidationErrors({ ...validationErrors, images: "You can upload a maximum of 3 images" });
+      setValidationErrors({
+        ...validationErrors,
+        images: "You can upload a maximum of 3 images",
+      });
     } else {
       setImages(files);
       setValidationErrors({ ...validationErrors, images: null });
     }
   };
+
   return (
     <div>
       <div className="max-w-lg space-y-4 mb-10">
@@ -183,7 +176,11 @@ useEffect(() => {
           <select
             value={propertyDetails.property_type}
             onChange={(e) =>
-              setPropertyDetails({ ...propertyDetails, property_type: e.target.value })
+              setPropertyDetails({
+                ...propertyDetails,
+                property_type: e.target.value,
+                ...(e.target.value === "land" && { bedrooms: "", bathrooms: "" }),
+              })
             }
             className="p-3 border rounded-md border-gray-300 w-full"
           >
@@ -195,9 +192,8 @@ useEffect(() => {
             <p className="text-red-400 text-sm">{validationErrors.property_type}</p>
           )}
         </div>
-       
-{/* City Dropdown */}
-<div className="w-full">
+
+        <div className="w-full">
           <select
             value={propertyDetails.city}
             onChange={(e) =>
@@ -220,49 +216,67 @@ useEffect(() => {
           label="Address"
           type="text"
           value={propertyDetails.address}
-          onChange={(value) => setPropertyDetails({ ...propertyDetails, address: value })}
+          onChange={(value) =>
+            setPropertyDetails({ ...propertyDetails, address: value })
+          }
           error={validationErrors.address}
         />
         <Input
           label="State"
           type="text"
           value={propertyDetails.state}
-          onChange={(value) => setPropertyDetails({ ...propertyDetails, state: value })}
+          onChange={(value) =>
+            setPropertyDetails({ ...propertyDetails, state: value })
+          }
           error={validationErrors.state}
         />
         <Input
           label="Zip Code"
           type="text"
           value={propertyDetails.zip_code}
-          onChange={(value) => setPropertyDetails({ ...propertyDetails, zip_code: value })}
+          onChange={(value) =>
+            setPropertyDetails({ ...propertyDetails, zip_code: value })
+          }
           error={validationErrors.zip_code}
         />
-        <Input
-          label="Bedrooms"
-          type="number"
-          value={propertyDetails.bedrooms}
-          onChange={(value) => setPropertyDetails({ ...propertyDetails, bedrooms: value })}
-          error={validationErrors.bedrooms}
-        />
-        <Input
-          label="Bathrooms"
-          type="number"
-          value={propertyDetails.bathrooms}
-          onChange={(value) => setPropertyDetails({ ...propertyDetails, bathrooms: value })}
-          error={validationErrors.bathrooms}
-        />
+        {propertyDetails.property_type === "home" && (
+          <>
+            <Input
+              label="Bedrooms"
+              type="number"
+              value={propertyDetails.bedrooms}
+              onChange={(value) =>
+                setPropertyDetails({ ...propertyDetails, bedrooms: value })
+              }
+              error={validationErrors.bedrooms}
+            />
+            <Input
+              label="Bathrooms"
+              type="number"
+              value={propertyDetails.bathrooms}
+              onChange={(value) =>
+                setPropertyDetails({ ...propertyDetails, bathrooms: value })
+              }
+              error={validationErrors.bathrooms}
+            />
+          </>
+        )}
         <Input
           label="Square Feet"
           type="number"
           value={propertyDetails.square_feet}
-          onChange={(value) => setPropertyDetails({ ...propertyDetails, square_feet: value })}
+          onChange={(value) =>
+            setPropertyDetails({ ...propertyDetails, square_feet: value })
+          }
           error={validationErrors.square_feet}
         />
         <Input
           label="Price"
           type="number"
           value={propertyDetails.price}
-          onChange={(value) => setPropertyDetails({ ...propertyDetails, price: value })}
+          onChange={(value) =>
+            setPropertyDetails({ ...propertyDetails, price: value })
+          }
           error={validationErrors.price}
         />
         <Input
@@ -283,7 +297,6 @@ useEffect(() => {
           }
           error={validationErrors.description}
         />
-        {/* Image Upload Field */}
         <div>
           <label className="block text-gray-700">Upload Images (Max 3)</label>
           <input

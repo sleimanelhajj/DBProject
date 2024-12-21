@@ -95,7 +95,8 @@
 // }
 
 
-//Header to consider 
+//Header to use 
+
 
 import { Link } from "react-router-dom";
 
@@ -105,7 +106,7 @@ export default function Header() {
       {/* Logo Section */}
       <div className="flex items-center">
         <Link to="/" className="flex items-center gap-2">
-          <span className="text-2xl font-bold text-purple-600">moment</span>
+          <span className="text-2xl font-bold text-purple-600">PropertEase</span>
         </Link>
       </div>
 
@@ -123,12 +124,12 @@ export default function Header() {
         >
           About Us
         </Link>
-        <Link
+        {/* <Link
           to="/properties"
           className="text-gray-700 font-medium hover:text-purple-600 transition-colors"
         >
           PropertiesForSale
-        </Link>
+        </Link> */}
         <Link
           to="/ContactUs"
           className="text-gray-700 font-medium hover:text-purple-600 transition-colors"
