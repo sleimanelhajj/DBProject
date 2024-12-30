@@ -18,9 +18,9 @@ const __dirname = path.dirname(__filename);
 const connection = await mysql.createConnection({
   host: "localhost",
   user: "root",
-  password: "0000",
-  database: "realestater",
-  port: 3306
+  password: "YOURPASS",
+  database: "YOUR DATA BASE NAME",
+  port: yourportNumber
 });
 
 
