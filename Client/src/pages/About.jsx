@@ -4,7 +4,7 @@ const About = () => {
   const [sellers, setSellers] = useState(0);
   const [clients, setClients] = useState(0);
 
-  const companyStartDate = new Date("2020-01-01");
+  const companyStartDate = new Date("2024-11-01");
   const currentDate = new Date();
   const daysSinceStart = Math.floor(
     (currentDate - companyStartDate) / (1000 * 60 * 60 * 24)

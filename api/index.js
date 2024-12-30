@@ -453,7 +453,7 @@ app.post("/update-profile", async (req, res) => {
 // ------------------- ADD PROPERTY WITH FILE UPLOAD --------------------
 // Updated `/add-property` endpoint
 app.post("/add-property", upload.array("images", 3), async (req, res) => {
-  const {
+  var {
     property_type,
     address,
     city,
@@ -486,18 +486,20 @@ console.log(property_type,
     !city ||
     !state ||
     !zip_code ||
-    !bedrooms ||
-    !bathrooms ||
     !square_feet ||
     !price ||
     !listing_date ||
     !description ||
     !seller
   ) {
-    console.log('ajskgfagnjasg')
+    console.log('bedrooms',bedrooms)
     return res.status(400).json({ error: "All required fields must be provided." });
   }
 
+  if(property_type=="land"){
+bedrooms=0
+bathrooms=0
+  }
   try {
     const formattedDate = new Date(listing_date).toISOString().split("T")[0];
   //     const userId=user['id']
@@ -543,7 +545,7 @@ console.log(property_type,
 
       // Insert the array into the database
       await connection.execute(
-        `INSERT INTO properties (property_id, image_paths) VALUES (?, ?)`,
+        `INSERT INTO property_images (property_id, image_paths) VALUES (?, ?)`,
         [propertyId, JSON.stringify(imagePaths)]
       );
     }
